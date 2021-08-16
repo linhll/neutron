@@ -36,9 +36,7 @@ const {
   getWorkspaceMeta,
   getWorkspaceMetas,
 } = require('./workspace-metas');
-const {
-  setWorkspaceBadgeCount,
-} = require('./workspace-badges');
+const { setWorkspaceBadgeCount } = require('./workspace-badges');
 const ContextMenuBuilder = require('./context-menu-builder');
 
 const sendToAllWindows = require('./send-to-all-windows');
@@ -125,8 +123,16 @@ const equivalentDomain = (domain) => {
   let eDomain = domain;
 
   const prefixes = [
-    'www', 'app', 'login', 'go', 'accounts', 'open', 'web', 'join',
-    'auth', 'hello',
+    'www',
+    'app',
+    'login',
+    'go',
+    'accounts',
+    'open',
+    'web',
+    'join',
+    'auth',
+    'hello',
   ];
   // app.portcast.io ~ portcast.io
   // login.xero.com ~ xero.com
@@ -151,7 +157,10 @@ const equivalentDomain = (domain) => {
   return eDomain;
 };
 
-const isMicrosoftUrl = (url) => /.+(microsoft.com|live.com|1drv.ms|office.com|sharepoint.com|skype.com)/g.test(url);
+const isMicrosoftUrl = (url) =>
+  /.+(microsoft.com|live.com|1drv.ms|office.com|sharepoint.com|skype.com)/g.test(
+    url,
+  );
 
 const isInternalUrl = (url, currentInternalUrls) => {
   // // Google Printing PDF CDN
@@ -162,7 +171,10 @@ const isInternalUrl = (url, currentInternalUrls) => {
   // google have a lot of redirections after logging in
   // so assume any requests made after 'accounts.google.com' are internals
   for (let i = 0; i < currentInternalUrls.length; i += 1) {
-    if (currentInternalUrls[i] && currentInternalUrls[i].startsWith('https://accounts.google.com')) {
+    if (
+      currentInternalUrls[i] &&
+      currentInternalUrls[i].startsWith('https://accounts.google.com')
+    ) {
       return true;
     }
   }
@@ -209,11 +221,15 @@ const addViewAsync = async (browserWindow, workspace) => {
   if (views[workspace.id] != null) return;
 
   // configure session & ad blocker
-  const partitionId = global.shareWorkspaceBrowsingData ? 'persist:shared' : `persist:${workspace.id}`;
+  const partitionId = global.shareWorkspaceBrowsingData
+    ? 'persist:shared'
+    : `persist:${workspace.id}`;
   const ses = session.fromPartition(partitionId);
 
   // user agent
-  const customUserAgent = getWorkspacePreference(workspace.id, 'customUserAgent') || getPreference('customUserAgent');
+  const customUserAgent =
+    getWorkspacePreference(workspace.id, 'customUserAgent') ||
+    getPreference('customUserAgent');
   if (customUserAgent) {
     ses.setUserAgent(customUserAgent);
   }
@@ -260,24 +276,23 @@ const addViewAsync = async (browserWindow, workspace) => {
       urls: ['*://*.overcast.fm/*'], // only need this for Overcast.fm (at least for now)
     },
     (details, callback) => {
-      if (details && details.responseHeaders && details.responseHeaders['Content-Security-Policy']) {
+      if (
+        details &&
+        details.responseHeaders &&
+        details.responseHeaders['Content-Security-Policy']
+      ) {
         delete details.responseHeaders['Content-Security-Policy'];
       }
       callback(details);
     },
   );
 
-  const {
-    defaultFontSize,
-    defaultFontSizeMinimum,
-    defaultFontSizeMonospace,
-  } = getPreferences();
+  const { defaultFontSize, defaultFontSizeMinimum, defaultFontSizeMonospace } =
+    getPreferences();
 
   const sharedWebPreferences = {
     spellcheck: global.spellcheck,
     nativeWindowOpen: true,
-    nodeIntegration: false,
-    contextIsolation: true,
     plugins: true, // PDF reader
     enableRemoteModule: false,
     scrollBounce: true,
@@ -286,16 +301,25 @@ const addViewAsync = async (browserWindow, workspace) => {
     defaultFontSize,
     defaultMonospaceFontSize: defaultFontSizeMonospace,
     minimumFontSize: defaultFontSizeMinimum,
+    contextIsolation: false,
+    // contextIsolation: true,
+    // nodeIntegration: false,
+    nodeIntegration: true,
+    webviewTag: true,
+    nodeIntegrationInWorker: true,
+    webSecurity: false,
+    experimentalFeatures: true,
   };
 
   // extensions
-  if (global.extensionEnabledExtesionIds
-      && Object.keys(global.extensionEnabledExtesionIds).length > 0) {
+  if (
+    global.extensionEnabledExtesionIds &&
+    Object.keys(global.extensionEnabledExtesionIds).length > 0
+  ) {
     const enabledExtensions = getExtensionFromProfile(
       global.extensionSourceBrowserId,
       global.extensionSourceProfileDirName,
-    )
-      .filter((ext) => global.extensionEnabledExtesionIds[ext.id]);
+    ).filter((ext) => global.extensionEnabledExtesionIds[ext.id]);
     if (enabledExtensions.length > 0) {
       if (!extensionManagers[partitionId]) {
         extensionManagers[partitionId] = new ElectronChromeExtensions({
@@ -332,7 +356,9 @@ const addViewAsync = async (browserWindow, workspace) => {
       }
       await Promise.all(
         // eslint-disable-next-line no-console
-        enabledExtensions.map((ext) => ses.loadExtension(ext.path).catch(console.log)),
+        enabledExtensions.map((ext) =>
+          ses.loadExtension(ext.path).catch(console.log),
+        ),
       );
     }
   }
@@ -359,8 +385,10 @@ const addViewAsync = async (browserWindow, workspace) => {
   // fix Google prevents signing in because of security concerns
   // https://github.com/webcatalog/webcatalog-app/issues/455
   // https://github.com/meetfranz/franz/issues/1720#issuecomment-566460763
-  const fakedFirefoxUaStr = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:90.0) Gecko/20100101 Firefox/90.0';
-  const fakedSafariUaStr = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15';
+  const fakedFirefoxUaStr =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:90.0) Gecko/20100101 Firefox/90.0';
+  const fakedSafariUaStr =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15';
   const adjustUserAgentByUrl = (contents, url, occasion) => {
     const currentUaStr = contents.userAgent;
 
@@ -368,7 +396,13 @@ const addViewAsync = async (browserWindow, workspace) => {
       if (currentUaStr !== customUserAgent) {
         contents.userAgent = customUserAgent;
         // eslint-disable-next-line no-console
-        console.log('Changed user agent to', customUserAgent, 'based of user preference', 'when', occasion);
+        console.log(
+          'Changed user agent to',
+          customUserAgent,
+          'based of user preference',
+          'when',
+          occasion,
+        );
         return true;
       }
     }
@@ -378,11 +412,21 @@ const addViewAsync = async (browserWindow, workspace) => {
     // Google will prevent users from signing in (citing insecure browser)
     // Google will redirect users to basic HTML interface of Gmail (citing outdated browser)
     // => use Firefox UA instead
-    if (navigatedDomain === 'accounts.google.com' || navigatedDomain === 'mail.google.com') {
+    if (
+      navigatedDomain === 'accounts.google.com' ||
+      navigatedDomain === 'mail.google.com'
+    ) {
       if (currentUaStr !== fakedFirefoxUaStr) {
         contents.userAgent = fakedFirefoxUaStr;
         // eslint-disable-next-line no-console
-        console.log('Changed user agent to', fakedFirefoxUaStr, 'for web compatibility URL: ', url, 'when', occasion);
+        console.log(
+          'Changed user agent to',
+          fakedFirefoxUaStr,
+          'for web compatibility URL: ',
+          url,
+          'when',
+          occasion,
+        );
         return true;
       }
     } else if (navigatedDomain === 'meet.google.com') {
@@ -392,10 +436,20 @@ const addViewAsync = async (browserWindow, workspace) => {
       if (currentUaStr !== fakedSafariUaStr) {
         contents.userAgent = fakedSafariUaStr;
         // eslint-disable-next-line no-console
-        console.log('Changed user agent to', fakedSafariUaStr, 'for web compatibility URL: ', url, 'when', occasion);
+        console.log(
+          'Changed user agent to',
+          fakedSafariUaStr,
+          'for web compatibility URL: ',
+          url,
+          'when',
+          occasion,
+        );
         return true;
       }
-    } else if (navigatedDomain === 'chat.google.com' || (url && url.startsWith('https://mail.google.com/chat'))) {
+    } else if (
+      navigatedDomain === 'chat.google.com' ||
+      (url && url.startsWith('https://mail.google.com/chat'))
+    ) {
       if (currentUaStr !== app.userAgentFallback) {
         // must use Chrome user agent for Google Chat to work
         contents.userAgent = app.userAgentFallback;
@@ -423,7 +477,9 @@ const addViewAsync = async (browserWindow, workspace) => {
 
     // check external rule set by user
     // https://docs.webcatalog.io/article/43-how-to-define-external-urls
-    const externalUrlRule = getWorkspacePreference(workspace.id, 'externalUrlRule') || getPreference('externalUrlRule');
+    const externalUrlRule =
+      getWorkspacePreference(workspace.id, 'externalUrlRule') ||
+      getPreference('externalUrlRule');
     if (nextUrl && externalUrlRule) {
       const re = new RegExp(`^${externalUrlRule}$`, 'i');
       if (re.test(nextUrl)) {
@@ -435,8 +491,9 @@ const addViewAsync = async (browserWindow, workspace) => {
 
     // check our rules
     if (
-      ((appDomain && appDomain.includes('github.com')) || (currentDomain && currentDomain.includes('github.com')))
-      && !isInternalUrl(nextUrl, [appUrl, currentUrl])
+      ((appDomain && appDomain.includes('github.com')) ||
+        (currentDomain && currentDomain.includes('github.com'))) &&
+      !isInternalUrl(nextUrl, [appUrl, currentUrl])
     ) {
       e.preventDefault();
       shell.openExternal(nextUrl);
@@ -468,7 +525,8 @@ const addViewAsync = async (browserWindow, workspace) => {
       if (getWorkspaceMeta(workspace.id).didFailLoad) {
         // show browserView again when reloading after error
         // see did-fail-load event
-        if (browserWindow && !browserWindow.isDestroyed()) { // fix https://github.com/atomery/singlebox/issues/228
+        if (browserWindow && !browserWindow.isDestroyed()) {
+          // fix https://github.com/atomery/singlebox/issues/228
           const contentSize = browserWindow.getContentSize();
           view.setBounds(getViewBounds(contentSize));
         }
@@ -503,43 +561,49 @@ const addViewAsync = async (browserWindow, workspace) => {
   // https://github.com/webcatalog/webcatalog-app/issues/398
   if (workspace.active) {
     view.webContents.once('did-stop-loading', () => {
-      if (browserWindow && !browserWindow.isDestroyed()
-        && browserWindow.isFocused() && !view.webContents.isFocused()) {
+      if (
+        browserWindow &&
+        !browserWindow.isDestroyed() &&
+        browserWindow.isFocused() &&
+        !view.webContents.isFocused()
+      ) {
         view.webContents.focus();
       }
     });
   }
 
   // https://electronjs.org/docs/api/web-contents#event-did-fail-load
-  view.webContents.on('did-fail-load', (e, errorCode, errorDesc, validateUrl, isMainFrame) => {
-    const workspaceObj = getWorkspace(workspace.id);
-    // this event might be triggered
-    // even after the workspace obj and BrowserView
-    // are destroyed. See https://github.com/webcatalog/webcatalog-app/issues/836
-    if (!workspaceObj) return;
+  view.webContents.on(
+    'did-fail-load',
+    (e, errorCode, errorDesc, validateUrl, isMainFrame) => {
+      const workspaceObj = getWorkspace(workspace.id);
+      // this event might be triggered
+      // even after the workspace obj and BrowserView
+      // are destroyed. See https://github.com/webcatalog/webcatalog-app/issues/836
+      if (!workspaceObj) return;
 
-    if (isMainFrame && errorCode < 0 && errorCode !== -3) {
-      setWorkspaceMeta(workspace.id, {
-        didFailLoad: errorDesc,
-        isLoading: false,
-      });
-      if (workspaceObj.active) {
-        sendToAllWindows('update-loading', false);
-        if (browserWindow && !browserWindow.isDestroyed()) { // fix https://github.com/atomery/singlebox/issues/228
-          const contentSize = browserWindow.getContentSize();
-          view.setBounds(
-            getViewBounds(contentSize, false, 0, 0),
-          ); // hide browserView to show error message
+      if (isMainFrame && errorCode < 0 && errorCode !== -3) {
+        setWorkspaceMeta(workspace.id, {
+          didFailLoad: errorDesc,
+          isLoading: false,
+        });
+        if (workspaceObj.active) {
+          sendToAllWindows('update-loading', false);
+          if (browserWindow && !browserWindow.isDestroyed()) {
+            // fix https://github.com/atomery/singlebox/issues/228
+            const contentSize = browserWindow.getContentSize();
+            view.setBounds(getViewBounds(contentSize, false, 0, 0)); // hide browserView to show error message
+          }
+          sendToAllWindows('update-did-fail-load', true);
         }
-        sendToAllWindows('update-did-fail-load', true);
       }
-    }
 
-    // edge case to handle failed auth
-    if (errorCode === -300 && view.webContents.getURL().length === 0) {
-      view.webContents.loadURL(workspaceObj.homeUrl || appJson.url);
-    }
-  });
+      // edge case to handle failed auth
+      if (errorCode === -300 && view.webContents.getURL().length === 0) {
+        view.webContents.loadURL(workspaceObj.homeUrl || appJson.url);
+      }
+    },
+  );
 
   view.webContents.on('did-navigate', (e, url) => {
     const workspaceObj = getWorkspace(workspace.id);
@@ -550,7 +614,11 @@ const addViewAsync = async (browserWindow, workspace) => {
 
     // fix "Google Chat isn't supported on your current browser"
     // https://github.com/webcatalog/webcatalog-app/issues/820
-    if (url && url.indexOf('error/browser-not-supported') > -1 && url.startsWith('https://chat.google.com')) {
+    if (
+      url &&
+      url.indexOf('error/browser-not-supported') > -1 &&
+      url.startsWith('https://chat.google.com')
+    ) {
       const ref = new URL(url).searchParams.get('ref') || '';
       view.webContents.loadURL(`https://chat.google.com${ref}`);
     }
@@ -566,7 +634,10 @@ const addViewAsync = async (browserWindow, workspace) => {
 
     if (workspaceObj.active) {
       sendToAllWindows('update-can-go-back', view.webContents.canGoBack());
-      sendToAllWindows('update-can-go-forward', view.webContents.canGoForward());
+      sendToAllWindows(
+        'update-can-go-forward',
+        view.webContents.canGoForward(),
+      );
       updateAddress(url);
     }
   });
@@ -580,7 +651,10 @@ const addViewAsync = async (browserWindow, workspace) => {
 
     if (workspaceObj.active) {
       sendToAllWindows('update-can-go-back', view.webContents.canGoBack());
-      sendToAllWindows('update-can-go-forward', view.webContents.canGoForward());
+      sendToAllWindows(
+        'update-can-go-forward',
+        view.webContents.canGoForward(),
+      );
       updateAddress(url);
     }
   });
@@ -602,29 +676,27 @@ const addViewAsync = async (browserWindow, workspace) => {
 
   const buildContextMenu = (contents, openLinkInNewWindow) => {
     // Menu
-    const contextMenuBuilder = new ContextMenuBuilder(
-      contents,
-      true,
-    );
+    const contextMenuBuilder = new ContextMenuBuilder(contents, true);
 
     contents.on('context-menu', (e, info) => {
-      contextMenuBuilder.buildMenuForElement(info)
-        .then((menu) => {
-          const extensionMenuItems = extensions
-            ? extensions.getContextMenuItems(contents, info) : [];
-          if (extensionMenuItems.length > 0) {
-            menu.append(new MenuItem({ type: 'separator' }));
-            extensionMenuItems.forEach((menuItem) => {
-              menu.append(menuItem);
-            });
-          }
+      contextMenuBuilder.buildMenuForElement(info).then((menu) => {
+        const extensionMenuItems = extensions
+          ? extensions.getContextMenuItems(contents, info)
+          : [];
+        if (extensionMenuItems.length > 0) {
+          menu.append(new MenuItem({ type: 'separator' }));
+          extensionMenuItems.forEach((menuItem) => {
+            menu.append(menuItem);
+          });
+        }
 
-          const utmSource = getUtmSource();
+        const utmSource = getUtmSource();
 
-          if (info.linkURL && info.linkURL.length > 0) {
-            menu.append(new MenuItem({ type: 'separator' }));
+        if (info.linkURL && info.linkURL.length > 0) {
+          menu.append(new MenuItem({ type: 'separator' }));
 
-            menu.append(new MenuItem({
+          menu.append(
+            new MenuItem({
               label: 'Open Link in New Window',
               click: () => {
                 // trigger the 'new-window' event manually
@@ -638,153 +710,206 @@ const addViewAsync = async (browserWindow, workspace) => {
                   'new-window',
                 );
               },
-            }));
-
-            menu.append(new MenuItem({ type: 'separator' }));
-
-            const workspaces = getWorkspaces();
-
-            const workspaceLst = Object.values(workspaces).sort((a, b) => a.order - b.order);
-
-            menu.append(new MenuItem({
-              label: `Open Link in New ${getWorkspaceFriendlyName()}`,
-              click: () => {
-                ipcMain.emit('request-open-url-in-workspace', null, info.linkURL);
-              },
-            }));
-            menu.append(new MenuItem({ type: 'separator' }));
-
-            workspaceLst.forEach((w) => {
-              const workspaceName = w.name || `${getWorkspaceFriendlyName()} ${w.order + 1}`;
-              menu.append(new MenuItem({
-                label: `Open Link in ${workspaceName}`,
-                click: () => {
-                  ipcMain.emit('request-open-url-in-workspace', null, info.linkURL, w.id);
-                },
-              }));
-            });
-          }
+            }),
+          );
 
           menu.append(new MenuItem({ type: 'separator' }));
 
-          menu.append(new MenuItem({
+          const workspaces = getWorkspaces();
+
+          const workspaceLst = Object.values(workspaces).sort(
+            (a, b) => a.order - b.order,
+          );
+
+          menu.append(
+            new MenuItem({
+              label: `Open Link in New ${getWorkspaceFriendlyName()}`,
+              click: () => {
+                ipcMain.emit(
+                  'request-open-url-in-workspace',
+                  null,
+                  info.linkURL,
+                );
+              },
+            }),
+          );
+          menu.append(new MenuItem({ type: 'separator' }));
+
+          workspaceLst.forEach((w) => {
+            const workspaceName =
+              w.name || `${getWorkspaceFriendlyName()} ${w.order + 1}`;
+            menu.append(
+              new MenuItem({
+                label: `Open Link in ${workspaceName}`,
+                click: () => {
+                  ipcMain.emit(
+                    'request-open-url-in-workspace',
+                    null,
+                    info.linkURL,
+                    w.id,
+                  );
+                },
+              }),
+            );
+          });
+        }
+
+        menu.append(new MenuItem({ type: 'separator' }));
+
+        menu.append(
+          new MenuItem({
             label: 'Back',
             enabled: contents.canGoBack(),
             click: () => {
               contents.goBack();
             },
-          }));
-          menu.append(new MenuItem({
+          }),
+        );
+        menu.append(
+          new MenuItem({
             label: 'Forward',
             enabled: contents.canGoForward(),
             click: () => {
               contents.goForward();
             },
-          }));
-          menu.append(new MenuItem({
+          }),
+        );
+        menu.append(
+          new MenuItem({
             label: 'Reload',
             click: () => {
               contents.reload();
             },
-          }));
+          }),
+        );
 
-          menu.append(new MenuItem({ type: 'separator' }));
+        menu.append(new MenuItem({ type: 'separator' }));
 
-          const currentUrl = info.linkURL || contents.getURL();
-          if (currentUrl) {
-            menu.append(
-              new MenuItem({
-                label: info.linkURL
-                  ? `Set URL as ${getWorkspaceFriendlyName()}'s Home Page`
-                  : `Set Current URL as ${getWorkspaceFriendlyName()}'s Home Page`,
-                click: () => {
-                  setWorkspace(workspace.id, {
-                    homeUrl: currentUrl,
-                  });
-                },
-              }),
-            );
-            menu.append(new MenuItem({ type: 'separator' }));
-          }
-
-          menu.append(new MenuItem({ type: 'separator' }));
-
-          const sharedUrl = info.linkURL || contents.getURL();
-          if (sharedUrl) {
-            menu.append(
-              new MenuItem({
-                role: 'shareMenu',
-                sharingItem: {
-                  urls: [sharedUrl],
-                },
-              }),
-            );
-            menu.append(new MenuItem({ type: 'separator' }));
-          }
-
+        const currentUrl = info.linkURL || contents.getURL();
+        if (currentUrl) {
           menu.append(
             new MenuItem({
-              label: 'More',
-              submenu: [
-                {
-                  label: 'About',
-                  click: () => ipcMain.emit('request-show-preferences-window', null, 'about'),
-                },
-                { type: 'separator' },
-                {
-                  label: 'Check for Updates',
-                  click: () => ipcMain.emit('request-check-for-updates'),
-                  visible: !isMas() && !isSnap() && !isAppx(),
-                },
-                {
-                  type: 'separator',
-                  visible: !isMas() && !isSnap() && !isAppx(),
-                },
-                {
-                  label: 'Preferences...',
-                  click: () => ipcMain.emit('request-show-preferences-window'),
-                },
-                { type: 'separator' },
-                isWebcatalog() ? {
-                  label: 'WebCatalog Help',
-                  click: () => shell.openExternal('https://help.webcatalog.app?utm_source=juli_app'),
-                } : {
-                  label: 'Help',
-                  click: () => {
-                    if (appJson.hostname) {
-                      return shell.openExternal(`https://${appJson.hostname}/help?utm_source=${utmSource}`);
-                    }
-                    return shell.openExternal(`https://${appJson.id}.app/help?utm_source=${utmSource}`);
-                  },
-                },
-                isWebcatalog() ? {
-                  label: 'WebCatalog Website',
-                  click: () => shell.openExternal('https://webcatalog.app?utm_source=juli_app'),
-                } : {
-                  label: 'Website',
-                  click: () => {
-                    if (appJson.hostname) {
-                      return shell.openExternal(`https://${appJson.hostname}?utm_source=${utmSource}`);
-                    }
-                    return shell.openExternal(`https://${appJson.id}.app?utm_source=${utmSource}`);
-                  },
-                },
-                { type: 'separator' },
-                {
-                  label: 'Quit',
-                  click: () => ipcMain.emit('request-quit'),
-                },
-              ],
+              label: info.linkURL
+                ? `Set URL as ${getWorkspaceFriendlyName()}'s Home Page`
+                : `Set Current URL as ${getWorkspaceFriendlyName()}'s Home Page`,
+              click: () => {
+                setWorkspace(workspace.id, {
+                  homeUrl: currentUrl,
+                });
+              },
             }),
           );
+          menu.append(new MenuItem({ type: 'separator' }));
+        }
 
-          menu.popup(browserWindow);
-        });
+        menu.append(new MenuItem({ type: 'separator' }));
+
+        const sharedUrl = info.linkURL || contents.getURL();
+        if (sharedUrl) {
+          menu.append(
+            new MenuItem({
+              role: 'shareMenu',
+              sharingItem: {
+                urls: [sharedUrl],
+              },
+            }),
+          );
+          menu.append(new MenuItem({ type: 'separator' }));
+        }
+
+        menu.append(
+          new MenuItem({
+            label: 'More',
+            submenu: [
+              {
+                label: 'About',
+                click: () =>
+                  ipcMain.emit(
+                    'request-show-preferences-window',
+                    null,
+                    'about',
+                  ),
+              },
+              { type: 'separator' },
+              {
+                label: 'Check for Updates',
+                click: () => ipcMain.emit('request-check-for-updates'),
+                visible: !isMas() && !isSnap() && !isAppx(),
+              },
+              {
+                type: 'separator',
+                visible: !isMas() && !isSnap() && !isAppx(),
+              },
+              {
+                label: 'Preferences...',
+                click: () => ipcMain.emit('request-show-preferences-window'),
+              },
+              { type: 'separator' },
+              isWebcatalog()
+                ? {
+                    label: 'WebCatalog Help',
+                    click: () =>
+                      shell.openExternal(
+                        'https://help.webcatalog.app?utm_source=juli_app',
+                      ),
+                  }
+                : {
+                    label: 'Help',
+                    click: () => {
+                      if (appJson.hostname) {
+                        return shell.openExternal(
+                          `https://${appJson.hostname}/help?utm_source=${utmSource}`,
+                        );
+                      }
+                      return shell.openExternal(
+                        `https://${appJson.id}.app/help?utm_source=${utmSource}`,
+                      );
+                    },
+                  },
+              isWebcatalog()
+                ? {
+                    label: 'WebCatalog Website',
+                    click: () =>
+                      shell.openExternal(
+                        'https://webcatalog.app?utm_source=juli_app',
+                      ),
+                  }
+                : {
+                    label: 'Website',
+                    click: () => {
+                      if (appJson.hostname) {
+                        return shell.openExternal(
+                          `https://${appJson.hostname}?utm_source=${utmSource}`,
+                        );
+                      }
+                      return shell.openExternal(
+                        `https://${appJson.id}.app?utm_source=${utmSource}`,
+                      );
+                    },
+                  },
+              { type: 'separator' },
+              {
+                label: 'Quit',
+                click: () => ipcMain.emit('request-quit'),
+              },
+            ],
+          }),
+        );
+
+        menu.popup(browserWindow);
+      });
     });
   };
 
   const handleNewWindow = (
-    e, nextUrl, frameName, disposition, options, additionalFeatures, referrer, postBody,
+    e,
+    nextUrl,
+    frameName,
+    disposition,
+    options,
+    additionalFeatures,
+    referrer,
+    postBody,
   ) => {
     const appUrl = getWorkspace(workspace.id).homeUrl || appJson.url;
     const appDomain = extractDomain(appUrl);
@@ -800,15 +925,18 @@ const addViewAsync = async (browserWindow, workspace) => {
       // because if not, it would break certain sites, such as Gmail
       // but avoid using it when opening Google Meet/Google login link
       // because somehow options.webContents doesn't let us configure UA
-      const useProvidedOptions = options && options.webContents && nextDomain !== 'meet.google.com';
-      const newOptions = useProvidedOptions ? options : {
-        show: true,
-        width: options && options.width ? options.width : 800,
-        height: options && options.width ? options.height : 600,
-        x: options && options.x ? options.x : undefined,
-        y: options && options.y ? options.y : undefined,
-        webPreferences: sharedWebPreferences,
-      };
+      const useProvidedOptions =
+        options && options.webContents && nextDomain !== 'meet.google.com';
+      const newOptions = useProvidedOptions
+        ? options
+        : {
+            show: true,
+            width: options && options.width ? options.width : 800,
+            height: options && options.width ? options.height : 600,
+            x: options && options.x ? options.x : undefined,
+            y: options && options.y ? options.y : undefined,
+            webPreferences: sharedWebPreferences,
+          };
 
       const popupWin = new BrowserWindow(newOptions);
       // WebCatalog internal value to determine whether BrowserWindow is popup
@@ -851,7 +979,9 @@ const addViewAsync = async (browserWindow, workspace) => {
     // Conditions are listed by order of priority
     // check external rule
     // https://docs.webcatalog.io/article/43-how-to-define-external-urls
-    const externalUrlRule = getWorkspacePreference(workspace.id, 'externalUrlRule') || getPreference('externalUrlRule');
+    const externalUrlRule =
+      getWorkspacePreference(workspace.id, 'externalUrlRule') ||
+      getPreference('externalUrlRule');
     if (nextUrl && externalUrlRule) {
       const re = new RegExp(`^${externalUrlRule}$`, 'i');
       if (re.test(nextUrl)) {
@@ -863,7 +993,9 @@ const addViewAsync = async (browserWindow, workspace) => {
 
     // check defined internal URL rule
     // https://webcatalog.app/internal-urls
-    const internalUrlRule = getWorkspacePreference(workspace.id, 'internalUrlRule') || getPreference('internalUrlRule');
+    const internalUrlRule =
+      getWorkspacePreference(workspace.id, 'internalUrlRule') ||
+      getPreference('internalUrlRule');
     if (nextUrl && internalUrlRule) {
       const re = new RegExp(`^${internalUrlRule}$`, 'i');
       if (re.test(nextUrl)) {
@@ -876,9 +1008,9 @@ const addViewAsync = async (browserWindow, workspace) => {
     // or if in Google Drive app, open Google Docs files internally https://github.com/webcatalog/webcatalog-app/issues/800
     // the next external link request will be opened in new window
     if (
-      disposition === 'new-window'
-      || disposition === 'default'
-      || (appDomain === 'drive.google.com' && nextDomain === 'docs.google.com')
+      disposition === 'new-window' ||
+      disposition === 'default' ||
+      (appDomain === 'drive.google.com' && nextDomain === 'docs.google.com')
     ) {
       openInNewWindow();
       return;
@@ -887,24 +1019,33 @@ const addViewAsync = async (browserWindow, workspace) => {
     // load in same window
     if (
       // https://app.slack.com/free-willy/: Slack call -> should still be opened in new window
-      (appDomain && nextDomain && appDomain.endsWith('slack.com') && nextDomain.endsWith('slack.com') && !nextUrl.startsWith('https://app.slack.com/free-willy/'))
+      (appDomain &&
+        nextDomain &&
+        appDomain.endsWith('slack.com') &&
+        nextDomain.endsWith('slack.com') &&
+        !nextUrl.startsWith('https://app.slack.com/free-willy/')) ||
       // Google: Add account
-      || nextDomain === 'accounts.google.com'
+      nextDomain === 'accounts.google.com' ||
       // Google: Switch account
-      || (
-        nextDomain && nextDomain.indexOf('google.com') > 0
-        && isInternalUrl(nextUrl, [appUrl, currentUrl])
-        && (
-          (nextUrl.indexOf('authuser=') > -1) // https://drive.google.com/drive/u/1/priority?authuser=2 (has authuser query)
-          || (/\/u\/[0-9]+\/{0,1}$/.test(nextUrl)) // https://mail.google.com/mail/u/1/ (ends with /u/1/)
-        )
-      )
+      (nextDomain &&
+        nextDomain.indexOf('google.com') > 0 &&
+        isInternalUrl(nextUrl, [appUrl, currentUrl]) &&
+        (nextUrl.indexOf('authuser=') > -1 || // https://drive.google.com/drive/u/1/priority?authuser=2 (has authuser query)
+          /\/u\/[0-9]+\/{0,1}$/.test(nextUrl))) || // https://mail.google.com/mail/u/1/ (ends with /u/1/)
       // https://github.com/webcatalog/webcatalog-app/issues/315
-      || (appDomain && nextDomain && (appDomain.includes('asana.com') || currentDomain.includes('asana.com')) && nextDomain.includes('asana.com'))
+      (appDomain &&
+        nextDomain &&
+        (appDomain.includes('asana.com') ||
+          currentDomain.includes('asana.com')) &&
+        nextDomain.includes('asana.com')) ||
       // handle OneDrive login URL
       // https://github.com/webcatalog/webcatalog-app/issues/1250
-      || (nextUrl && nextUrl.startsWith('https://go.microsoft.com/fwlink/p/?LinkID=2119709'))
-      || (nextUrl && nextUrl.startsWith('https://go.microsoft.com/fwlink/p/?LinkID=2116067'))
+      (nextUrl &&
+        nextUrl.startsWith(
+          'https://go.microsoft.com/fwlink/p/?LinkID=2119709',
+        )) ||
+      (nextUrl &&
+        nextUrl.startsWith('https://go.microsoft.com/fwlink/p/?LinkID=2116067'))
     ) {
       e.preventDefault();
       e.sender.loadURL(nextUrl);
@@ -921,9 +1062,9 @@ const addViewAsync = async (browserWindow, workspace) => {
     // if popup window is not opened and loaded, Roam crashes (shows white page)
     // https://github.com/webcatalog/webcatalog-app/issues/793
     if (
-      appDomain === 'roamresearch.com'
-      && nextDomain != null
-      && (disposition === 'foreground-tab' || disposition === 'background-tab')
+      appDomain === 'roamresearch.com' &&
+      nextDomain != null &&
+      (disposition === 'foreground-tab' || disposition === 'background-tab')
     ) {
       e.preventDefault();
       shell.openExternal(nextUrl);
@@ -944,8 +1085,8 @@ const addViewAsync = async (browserWindow, workspace) => {
 
     // open external url in browser
     if (
-      nextDomain != null
-      && (disposition === 'foreground-tab' || disposition === 'background-tab')
+      nextDomain != null &&
+      (disposition === 'foreground-tab' || disposition === 'background-tab')
     ) {
       e.preventDefault();
       shell.openExternal(nextUrl);
@@ -956,8 +1097,8 @@ const addViewAsync = async (browserWindow, workspace) => {
     // nextURL === 'about:blank' but then window will redirect to the external URL
     // https://github.com/webcatalog/webcatalog-app/issues/467#issuecomment-569857721
     if (
-      nextDomain === null
-      && (disposition === 'foreground-tab' || disposition === 'background-tab')
+      nextDomain === null &&
+      (disposition === 'foreground-tab' || disposition === 'background-tab')
     ) {
       e.preventDefault();
       const newOptions = {
@@ -974,7 +1115,8 @@ const addViewAsync = async (browserWindow, workspace) => {
         // if the window is used for the current app, then use default behavior
         if (isInternalUrl(url, [appUrl, currentUrl])) {
           popupWin.show();
-        } else { // if not, open in browser
+        } else {
+          // if not, open in browser
           e.preventDefault();
           shell.openExternal(url);
           popupWin.close();
@@ -990,10 +1132,12 @@ const addViewAsync = async (browserWindow, workspace) => {
   const willDownloadListener = (event, item) => {
     const globalPreferences = getPreferences();
     const workspacePreferences = getWorkspacePreferences(workspace.id);
-    const downloadPath = workspacePreferences.downloadPath || globalPreferences.downloadPath;
-    const askForDownloadPath = (workspacePreferences.askForDownloadPath != null
-      ? workspacePreferences.askForDownloadPath
-      : globalPreferences.askForDownloadPath) || global.forceSaveAs;
+    const downloadPath =
+      workspacePreferences.downloadPath || globalPreferences.downloadPath;
+    const askForDownloadPath =
+      (workspacePreferences.askForDownloadPath != null
+        ? workspacePreferences.askForDownloadPath
+        : globalPreferences.askForDownloadPath) || global.forceSaveAs;
     // use for "save image as..." feature
     global.forceSaveAs = false;
 
@@ -1018,11 +1162,13 @@ const addViewAsync = async (browserWindow, workspace) => {
     } else {
       const filename = item.getFilename();
       const name = path.extname(filename)
-        ? filename : getFilenameFromMime(filename, item.getMimeType());
+        ? filename
+        : getFilenameFromMime(filename, item.getMimeType());
       filePath = unusedFilename.sync(path.join(directory, name));
     }
 
-    const errorMessage = options.errorMessage || 'The download of {filename} was interrupted';
+    const errorMessage =
+      options.errorMessage || 'The download of {filename} was interrupted';
 
     if (!options.saveAs) {
       item.setSavePath(filePath);
@@ -1086,7 +1232,9 @@ const addViewAsync = async (browserWindow, workspace) => {
           options.onCancel(item);
         }
       } else if (state === 'interrupted') {
-        const message = pupa(errorMessage, { filename: path.basename(item.getSavePath()) });
+        const message = pupa(errorMessage, {
+          filename: path.basename(item.getSavePath()),
+        });
         callback(new Error(message));
       } else if (state === 'completed') {
         if (process.platform === 'darwin') {
@@ -1118,7 +1266,11 @@ const addViewAsync = async (browserWindow, workspace) => {
 
   // Find In Page
   view.webContents.on('found-in-page', (e, result) => {
-    sendToAllWindows('update-find-in-page-matches', result.activeMatchOrdinal, result.matches);
+    sendToAllWindows(
+      'update-find-in-page-matches',
+      result.activeMatchOrdinal,
+      result.matches,
+    );
   });
 
   // Link preview
@@ -1135,7 +1287,10 @@ const addViewAsync = async (browserWindow, workspace) => {
     view.webContents.audioMuted = shouldMuteAudio;
   }
   view.webContents.once('did-stop-loading', () => {
-    view.webContents.send('should-pause-notifications-changed', workspace.disableNotifications || shouldPauseNotifications);
+    view.webContents.send(
+      'should-pause-notifications-changed',
+      workspace.disableNotifications || shouldPauseNotifications,
+    );
   });
 
   view.openInNewWindow = (url) => {
@@ -1162,12 +1317,22 @@ const addViewAsync = async (browserWindow, workspace) => {
       width: true,
       height: true,
     });
-  } else if (global.hibernateWhenUnused && global.hibernateWhenUnusedTimeout > 0) {
-    ipcMain.emit('request-hibernate-workspace', null, workspace.id, global.hibernateWhenUnusedTimeout);
+  } else if (
+    global.hibernateWhenUnused &&
+    global.hibernateWhenUnusedTimeout > 0
+  ) {
+    ipcMain.emit(
+      'request-hibernate-workspace',
+      null,
+      workspace.id,
+      global.hibernateWhenUnusedTimeout,
+    );
   }
 
-  const initialUrl = (global.rememberLastPageVisited && workspace.lastUrl)
-  || workspace.homeUrl || appJson.url;
+  const initialUrl =
+    (global.rememberLastPageVisited && workspace.lastUrl) ||
+    workspace.homeUrl ||
+    appJson.url;
   adjustUserAgentByUrl(view.webContents, initialUrl);
   if (initialUrl) {
     view.webContents.loadURL(initialUrl);
@@ -1192,9 +1357,7 @@ const setActiveView = (browserWindow, id) => {
 
     const contentSize = browserWindow.getContentSize();
     if (getWorkspaceMeta(id).didFailLoad) {
-      view.setBounds(
-        getViewBounds(contentSize, false, 0, 0),
-      ); // hide browserView to show error message
+      view.setBounds(getViewBounds(contentSize, false, 0, 0)); // hide browserView to show error message
     } else {
       view.setBounds(getViewBounds(contentSize));
     }
@@ -1230,9 +1393,7 @@ const realignActiveView = (browserWindow, activeId) => {
   if (view && view.webContents) {
     const contentSize = browserWindow.getContentSize();
     if (getWorkspaceMeta(activeId).didFailLoad) {
-      view.setBounds(
-        getViewBounds(contentSize, false, 0, 0),
-      ); // hide browserView to show error message
+      view.setBounds(getViewBounds(contentSize, false, 0, 0)); // hide browserView to show error message
     } else {
       view.setBounds(getViewBounds(contentSize));
     }
@@ -1263,7 +1424,8 @@ const setViewsAudioPref = (_shouldMuteAudio) => {
     const view = views[id];
     if (view != null) {
       const workspace = getWorkspace(id);
-      view.webContents.audioMuted = workspace.disableAudio || shouldMuteAudio || muteApp;
+      view.webContents.audioMuted =
+        workspace.disableAudio || shouldMuteAudio || muteApp;
     }
   });
 };

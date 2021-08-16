@@ -1,4 +1,3 @@
-label: ubuntu-latest
 name: Linux (x64)
 
 on:

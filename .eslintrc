@@ -1,6 +1,6 @@
 {
   "parser": "babel-eslint",
-  "extends": "airbnb",
+  "extends": ["airbnb", "eslint:recommended"],
   "globals": {
     "window": true,
     "document": true
@@ -16,6 +16,12 @@
     "import/prefer-default-export": [0],
     "camelcase": [0],
     "import/no-cycle": [0],
-    "linebreak-style": [0]
+    "linebreak-style": [0],
+    "operator-linebreak": 0,
+    "implicit-arrow-linebreak": 0,
+    "function-call-argument-newline": 0,
+    "function-paren-newline": 0,
+    "indent": 0,
+    "max-len": 0
   }
 }
